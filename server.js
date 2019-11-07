@@ -17,7 +17,6 @@ app.use(bodyParser.json());              // Add support for JSON encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // Add support for URL encoded bodies
 
 const pug = require('pug'); // Add the 'pug' view engine
-
 //Create Database Connection
 const pgp = require('pg-promise')();
 
@@ -143,7 +142,7 @@ app.post('/home/pick_color', function(req, res) {
     })
     .catch(error => {
         // display error message in case an error
-            req.flash('error', error); //if this doesn't work for you replace with console.log
+            console.log('error', error); //if this doesn't work for you replace with console.log
             res.render('pages/home', {
                 my_title: 'Home Page',
                 data: '',
@@ -153,8 +152,8 @@ app.post('/home/pick_color', function(req, res) {
     });
 });
 app.get('/team_stats', function(req, res){
-  var countGames = "select count(*) from football_games;";
-  var winner = "select "
+  var countGames = "select * from football_games;";
+  var date = "select  to_char(game_date :: DATE, 'MON DD, YYYY') from football_games;";
   var countWins = "select count(*) from football_games where home_score > visitor_score;";
   var countLoss = "select count(*) from football_games where home_score < visitor_score;";
   db.task('get-everything', task => {
@@ -162,19 +161,21 @@ app.get('/team_stats', function(req, res){
       task.any(countGames),
       task.any(countWins),
       task.any(countLoss),
+      task.any(date),
     ]);
   })
-  .then(data => {
+  .then(info => {
     res.render('pages/team_stats',{
       my_title: "Team Stats",
       data: info[0],
-      wins: countWins,
-      losses: countLoss,
+      wins: info[1][0],
+      losses: info[2][0],
+      date: info[3][0],
     })
   })
   .catch(error => {
       // display error message in case an error
-          req.flash('error', error); //if this doesn't work for you replace with console.log
+          console.log('error', error); //if this doesn't work for you replace with console.log
           res.render('pages/team_stats', {
               my_title: 'Team Stats',
               data: '',
@@ -184,6 +185,57 @@ app.get('/team_stats', function(req, res){
   });
 
 
+});
+
+app.get('/player_info', function(req, res){
+  var players = "select * from football_players;";
+  db.any(players)
+    .then(function (rows) {
+      res.render('pages/player_info',{
+        my_title: "Football Players",
+        data: rows,
+        player_info: "",
+        games_played: ""
+      })
+    })
+    .catch(function(err){
+      res.render('pages/player_info',{
+        my_title: "Football Players",
+        data: '',
+      })
+    });
+});
+
+app.get('/player_info/select_player', function(req,res){
+  var player_id = req.query.player_choice;
+  var players = "select * from football_players;";
+  var player_info = "select * from football_players where id = " + player_id + ";";
+  var games_played = "select count(*) from football_games where (" + player_id + "-10) = any(players);";
+  console.log(player_id);
+  db.task('get-everything', task => {
+    return task.batch([
+      task.any(players),
+      task.any(player_info),
+      task.any(games_played)
+    ]);
+  })
+  .then(rows => {
+    res.render('pages/player_info',{
+      my_title: "Football Players",
+      data: rows[0],
+      player_info: rows[1][0],
+      games_played: rows[2][0],
+      
+    })
+  })
+  .catch(error => {
+    res.render('pages/player_info', {
+      my_title: "Football Players",
+      data: "",
+      player_info: "",
+      games_played: ""
+    })
+  })
 });
 /*********************************
 

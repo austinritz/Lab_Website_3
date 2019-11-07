@@ -33,6 +33,7 @@ div.container
             td #{item.home_score}
             td #{item.visitor_score}
             td #{item.visitor_name}
+        count = count+1
 
   br
 
@@ -41,7 +42,7 @@ div.container
       th Wins
       th Losses
     tr
-      td #{wins}
-      td #{losses}
+      td #{wins.count}
+      td #{losses.count}
 
 include ../partials/footer.pug
